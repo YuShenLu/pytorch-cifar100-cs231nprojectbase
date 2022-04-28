@@ -26,6 +26,9 @@ from conf import settings
 from utils import get_network, get_training_dataloader, get_test_dataloader, WarmUpLR, \
     most_recent_folder, most_recent_weights, last_epoch, best_acc_weights
 
+random_seed = 43
+torch.manual_seed(random_seed)
+
 def train(epoch):
 
     start = time.time()
@@ -37,8 +40,13 @@ def train(epoch):
             images = images.cuda()
 
         optimizer.zero_grad()
-        outputs = net(images)
-        loss = loss_function(outputs, labels)
+
+        sample_ind = sample_example_ind(net, images, labels)
+
+        images_selected = images[sample_ind]
+        labels_selected = labels[sample_ind]
+        outputs_selected = net(images_selected)
+        loss = loss_function(outputs_selected, labels_selected)
         loss.backward()
         optimizer.step()
 
@@ -73,6 +81,27 @@ def train(epoch):
     finish = time.time()
 
     print('epoch {} training time consumed: {:.2f}s'.format(epoch, finish - start))
+
+
+def sample_example_ind(net, images, labels):
+    loss_total_check = loss_function(net(images), labels)
+    exp_selected = []
+    cum_loss = 0
+    for exp_ind in range(images.shape[0]):
+        # net(images)
+        img, label = images[exp_ind].unsqueeze(0), labels[exp_ind].unsqueeze(0)
+        output = net(img)
+        example_loss = loss_function(output, label)
+        # this is a test, not actually doing sampling base on
+        if exp_ind%3==0:
+            exp_selected.append(exp_ind)
+        cum_loss += example_loss.cpu().data
+
+    assert (loss_total_check.cpu() - cum_loss <1e-5)
+
+    return exp_selected
+
+
 
 @torch.no_grad()
 def eval_training(epoch=0, tb=True):
