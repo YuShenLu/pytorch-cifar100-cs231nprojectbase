@@ -26,11 +26,16 @@ from conf import settings
 from utils import get_network, get_training_dataloader, get_test_dataloader, WarmUpLR, \
     most_recent_folder, most_recent_weights, last_epoch, best_acc_weights
 
+import calculators
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+# assert device == "cuda"
+
 random_seed = 43
 torch.manual_seed(random_seed)
 
 def train(epoch):
-
+    calculator = calculators.RelativeProbabilityCalculator(device)
     start = time.time()
     net.train()
     for batch_index, (images, labels) in enumerate(cifar100_training_loader):
@@ -41,7 +46,7 @@ def train(epoch):
 
         optimizer.zero_grad()
 
-        sample_ind = sample_example_ind(net, images, labels)
+        sample_ind = sample_example_ind(calculator, net, images, labels)
 
         images_selected = images[sample_ind]
         labels_selected = labels[sample_ind]
@@ -83,7 +88,7 @@ def train(epoch):
     print('epoch {} training time consumed: {:.2f}s'.format(epoch, finish - start))
 
 
-def sample_example_ind(net, images, labels):
+def sample_example_ind(calculator, net, images, labels):
     loss_total_check = loss_function(net(images), labels)
     exp_selected = []
     cum_loss = 0
@@ -93,8 +98,15 @@ def sample_example_ind(net, images, labels):
         output = net(img)
         example_loss = loss_function(output, label)
         # this is a test, not actually doing sampling base on
-        if exp_ind%3==0:
+        # if exp_ind%3==0:
+        #     exp_selected.append(exp_ind)
+
+        loss_val = example_loss.cpu().data.item()
+        calculator.append(loss_val)
+        prob = calculator.calculate_probability(loss_val)
+        if np.random.rand() < prob:
             exp_selected.append(exp_ind)
+
         cum_loss += example_loss.cpu().data
 
     assert (loss_total_check.cpu() - cum_loss <1e-5)
