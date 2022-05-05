@@ -35,10 +35,12 @@ random_seed = 43
 torch.manual_seed(random_seed)
 
 def train(epoch):
-    calculator = calculators.RelativeProbabilityCalculator(device)
+    calculator = calculators.RelativeProbabilityCalculator(device, beta=args.beta)
     start = time.time()
     net.train()
     curr_ind = 0
+    print('Start Training using args:')
+    print(args)
     for batch_index, (images, labels) in enumerate(cifar100_training_loader):
 
         if args.gpu:
@@ -47,7 +49,7 @@ def train(epoch):
 
         optimizer.zero_grad()
 
-        sample_ind = sample_example_ind(calculator, net, images, labels, sampling=True)
+        sample_ind = sample_example_ind(calculator, net, images, labels, sampling=args.sbp)
         if not sample_ind:
             continue
         curr_ind += len(sample_ind)
@@ -172,6 +174,8 @@ if __name__ == '__main__':
     parser.add_argument('-warm', type=int, default=1, help='warm up training phase')
     parser.add_argument('-lr', type=float, default=0.1, help='initial learning rate')
     parser.add_argument('-resume', action='store_true', default=False, help='resume training')
+    parser.add_argument('-sbp', action='store_true', default=False, help='run with selective backprop')
+    parser.add_argument('-beta', type=int, default=3, help='selective backprop param')
     args = parser.parse_args()
 
     net = get_network(args)
