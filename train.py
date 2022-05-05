@@ -38,6 +38,7 @@ def train(epoch):
     calculator = calculators.RelativeProbabilityCalculator(device)
     start = time.time()
     net.train()
+    curr_ind = 0
     for batch_index, (images, labels) in enumerate(cifar100_training_loader):
 
         if args.gpu:
@@ -46,8 +47,10 @@ def train(epoch):
 
         optimizer.zero_grad()
 
-        sample_ind = sample_example_ind(calculator, net, images, labels)
-
+        sample_ind = sample_example_ind(calculator, net, images, labels, sampling=True)
+        if not sample_ind:
+            continue
+        curr_ind += len(sample_ind)
         images_selected = images[sample_ind]
         labels_selected = labels[sample_ind]
         outputs_selected = net(images_selected)
@@ -64,12 +67,13 @@ def train(epoch):
             if 'bias' in name:
                 writer.add_scalar('LastLayerGradients/grad_norm2_bias', para.grad.norm(), n_iter)
 
-        print('Training Epoch: {epoch} [{trained_samples}/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}'.format(
+        print('Training Epoch: {epoch} [{trained_samples} (used {used_samples})/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}'.format(
             loss.item(),
             optimizer.param_groups[0]['lr'],
             epoch=epoch,
             trained_samples=batch_index * args.b + len(images),
-            total_samples=len(cifar100_training_loader.dataset)
+            total_samples=len(cifar100_training_loader.dataset),
+            used_samples=curr_ind
         ))
 
         #update training loss for each iteration
@@ -88,7 +92,9 @@ def train(epoch):
     print('epoch {} training time consumed: {:.2f}s'.format(epoch, finish - start))
 
 
-def sample_example_ind(calculator, net, images, labels):
+def sample_example_ind(calculator, net, images, labels, sampling=True):
+    if not sampling:
+        return np.arange(0,images.shape[0]).tolist()
     loss_total_check = loss_function(net(images), labels)
     exp_selected = []
     cum_loss = 0
