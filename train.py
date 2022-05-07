@@ -72,6 +72,7 @@ def train(epoch):
             if 'bias' in name:
                 writer.add_scalar('LastLayerGradients/grad_norm2_bias', para.grad.norm(), n_iter)
 
+
         print('Training Epoch: {epoch} [{trained_samples} (used {used_samples})/{total_samples}]\tLoss: {:0.4f}\tLR: {:0.6f}'.format(
             loss.item(),
             optimizer.param_groups[0]['lr'],
@@ -103,9 +104,9 @@ def train(epoch):
 def sample_example_ind(calculator, net, images, labels, sampling=True):
     if not sampling:
         return np.arange(0,images.shape[0]).tolist()
-    loss_total_check = loss_function(net(images), labels)
+    # loss_total_check = loss_function(net(images), labels)
     exp_selected = []
-    cum_loss = 0
+    # cum_loss = 0
     for exp_ind in range(images.shape[0]):
         # net(images)
         img, label = images[exp_ind].unsqueeze(0), labels[exp_ind].unsqueeze(0)
@@ -121,9 +122,9 @@ def sample_example_ind(calculator, net, images, labels, sampling=True):
         if np.random.rand() < prob:
             exp_selected.append(exp_ind)
 
-        cum_loss += example_loss.cpu().data
+        # cum_loss += example_loss.cpu().data
 
-    assert (loss_total_check.cpu() - cum_loss <1e-5)
+    # assert (loss_total_check.cpu() - cum_loss <1e-5)
 
     return exp_selected
 
