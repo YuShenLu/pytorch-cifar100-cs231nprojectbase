@@ -33,8 +33,10 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 random_seed = 43
 torch.manual_seed(random_seed)
+total_ind = 0
 
 def train(epoch):
+    global total_ind
     calculator = calculators.RelativeProbabilityCalculator(device, beta=args.beta)
     start = time.time()
     net.train()
@@ -53,6 +55,7 @@ def train(epoch):
         if not sample_ind:
             continue
         curr_ind += len(sample_ind)
+        total_ind += len(sample_ind)
         images_selected = images[sample_ind]
         labels_selected = labels[sample_ind]
         outputs_selected = net(images_selected)
@@ -80,6 +83,9 @@ def train(epoch):
 
         #update training loss for each iteration
         writer.add_scalar('Train/loss', loss.item(), n_iter)
+
+        #update number of used examples
+        writer.add_scalar('Used/Total', total_ind, n_iter)
 
         if epoch <= args.warm:
             warmup_scheduler.step()
@@ -166,7 +172,6 @@ def eval_training(epoch=0, tb=True):
     return correct.float() / len(cifar100_test_loader.dataset)
 
 if __name__ == '__main__':
-
     parser = argparse.ArgumentParser()
     parser.add_argument('-net', type=str, required=True, help='net type')
     parser.add_argument('-gpu', action='store_true', default=False, help='use gpu or not')
