@@ -26,10 +26,15 @@ from conf import settings
 from utils import get_network, get_training_dataloader, get_test_dataloader, WarmUpLR, \
     most_recent_folder, most_recent_weights, last_epoch, best_acc_weights
 
+
+# from el2n import compute_el2n_score
+
 def train(epoch):
 
     start = time.time()
     net.train()
+    print('Start Training using args:')
+    print(args)
     for batch_index, (images, labels) in enumerate(cifar100_training_loader):
 
         if args.gpu:
@@ -38,6 +43,11 @@ def train(epoch):
 
         optimizer.zero_grad()
         outputs = net(images)
+
+        # if args.el2n == np.triu_indices_from and args.el2n_epoch == epoch:
+        #     el2n_score = compute_el2n_score(outputs, labels)
+        #     print(el2n_score)
+
         loss = loss_function(outputs, labels)
         loss.backward()
         optimizer.step()
@@ -125,6 +135,8 @@ if __name__ == '__main__':
     parser.add_argument('-warm', type=int, default=1, help='warm up training phase')
     parser.add_argument('-lr', type=float, default=0.1, help='initial learning rate')
     parser.add_argument('-resume', action='store_true', default=False, help='resume training')
+    # parser.add_argument('-el2n', action='store_true', default=False, help='compute el2n score')
+    # parser.add_argument('-el2n_epoch', type=int, default=20, help='epoch for el2n score calculation')
     args = parser.parse_args()
 
     net = get_network(args)
