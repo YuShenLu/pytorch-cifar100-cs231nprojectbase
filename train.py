@@ -5,7 +5,7 @@
 
 author baiyu
 """
-
+import json
 import os
 import sys
 import argparse
@@ -34,10 +34,12 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 random_seed = 43
 torch.manual_seed(random_seed)
 total_ind = 0
+calculator = None
 
-def train(epoch):
+
+def train(epoch, data_ledger=None):
     global total_ind
-    calculator = calculators.RelativeProbabilityCalculator(device, beta=args.beta)
+    global calculator
     start = time.time()
     net.train()
     curr_ind = 0
@@ -56,6 +58,14 @@ def train(epoch):
             continue
         curr_ind += len(sample_ind)
         total_ind += len(sample_ind)
+        if data_ledger is not None:
+            for ind in sample_ind:
+                data_ind = int(batch_index * args.b + ind)
+                if data_ind in data_ledger:
+                    data_ledger[batch_index * args.b + ind].append(epoch)
+                else:
+                    data_ledger[batch_index * args.b + ind] = [epoch]
+
         images_selected = images[sample_ind]
         labels_selected = labels[sample_ind]
         outputs_selected = net(images_selected)
@@ -192,7 +202,7 @@ if __name__ == '__main__':
         settings.CIFAR100_TRAIN_STD,
         num_workers=4,
         batch_size=args.b,
-        shuffle=True
+        shuffle=False
     )
 
     cifar100_test_loader = get_test_dataloader(
@@ -208,6 +218,7 @@ if __name__ == '__main__':
     train_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=settings.MILESTONES, gamma=0.2) #learning rate decay
     iter_per_epoch = len(cifar100_training_loader)
     warmup_scheduler = WarmUpLR(optimizer, iter_per_epoch * args.warm)
+    num_samples = len(cifar100_training_loader.dataset)
 
     if args.resume:
         recent_folder = most_recent_folder(os.path.join(settings.CHECKPOINT_PATH, args.net), fmt=settings.DATE_FORMAT)
@@ -257,6 +268,14 @@ if __name__ == '__main__':
 
         resume_epoch = last_epoch(os.path.join(settings.CHECKPOINT_PATH, args.net, recent_folder))
 
+    turn_on_sbp = False
+    if args.sbp:
+        turn_on_sbp = True
+        args.sbp = False
+
+    data_ledger = {}
+
+    calculator = calculators.RelativeProbabilityCalculator(device, beta=args.beta)
 
     for epoch in range(1, settings.EPOCH + 1):
         if epoch > args.warm:
@@ -266,7 +285,11 @@ if __name__ == '__main__':
             if epoch <= resume_epoch:
                 continue
 
-        train(epoch)
+        if epoch > ((settings.EPOCH)//2) and turn_on_sbp:
+            print("Half way through training, turnning on SBP")
+            args.sbp = True
+
+        train(epoch, data_ledger)
         acc = eval_training(epoch)
 
         #start to save best performance model after learning rate decay to 0.01
@@ -281,5 +304,14 @@ if __name__ == '__main__':
             weights_path = checkpoint_path.format(net=args.net, epoch=epoch, type='regular')
             print('saving weights file to {}'.format(weights_path))
             torch.save(net.state_dict(), weights_path)
+
+    print("="*20+"Training Data stats:"+"="*20)
+    print(data_ledger)
+    jsonfilename = "./data_ledger_"+args.net
+    if args.sbp:
+        jsonfilename += "_sbp"
+
+    with open(jsonfilename+".json", 'w+') as json_file:
+        json.dump(data_ledger, json_file)
 
     writer.close()
