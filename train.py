@@ -118,20 +118,20 @@ def sample_example_ind(calculator, net, images, labels, sampling=True):
     exp_selected = []
     # cum_loss = 0
     for exp_ind in range(images.shape[0]):
-        # net(images)
-        img, label = images[exp_ind].unsqueeze(0), labels[exp_ind].unsqueeze(0)
-        output = net(img)
-        example_loss = loss_function(output, label)
-        # this is a test, not actually doing sampling base on
-        # if exp_ind%3==0:
-        #     exp_selected.append(exp_ind)
+        with torch.no_grad():
+            # net(images)
+            img, label = images[exp_ind].unsqueeze(0), labels[exp_ind].unsqueeze(0)
+            output = net(img)
+            example_loss = loss_function(output, label)
+            # this is a test, not actually doing sampling base on
+            # if exp_ind%3==0:
+            #     exp_selected.append(exp_ind)
 
-        loss_val = example_loss.cpu().data.item()
-        calculator.append(loss_val)
-        prob = calculator.calculate_probability(loss_val)
-        if np.random.rand() < prob:
-            exp_selected.append(exp_ind)
-
+            loss_val = example_loss.cpu().data.item()
+            calculator.append(loss_val)
+            prob = calculator.calculate_probability(loss_val)
+            if np.random.rand() < prob:
+                exp_selected.append(exp_ind)
         # cum_loss += example_loss.cpu().data
 
     # assert (loss_total_check.cpu() - cum_loss <1e-5)
