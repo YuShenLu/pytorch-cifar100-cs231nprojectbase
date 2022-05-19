@@ -136,7 +136,8 @@ if __name__ == '__main__':
     parser.add_argument('-lr', type=float, default=0.1, help='initial learning rate')
     parser.add_argument('-resume', action='store_true', default=False, help='resume training')
     parser.add_argument('-el2n', action='store_true', default=False, help='compute el2n score')
-    parser.add_argument('-el2npercent', type=float, default=0.75, help='el2n-keep-percentage')
+    parser.add_argument('-el2nkp', type=float, default=0.75, help='el2n keep percentage')
+    parser.add_argument('-path', type=str, required=False, help='path for el2n scores')
     # parser.add_argument('-el2n_epoch', type=int, default=20, help='epoch for el2n score calculation')
     args = parser.parse_args()
 
@@ -144,8 +145,8 @@ if __name__ == '__main__':
 
     #data preprocessing:
     cifar100_training_loader = None
-    if args.el2n:    
-        scores = np.load('el2n/resnet18/Thursday_19_May_2022_13h_52m_46s/ckpt.npy')
+    if args.el2n and args.path is not None:    
+        scores = np.load(args.path)
         num_keep = int(args.el2npercent * len(scores))
 
         lowest_scoring = np.sort(scores)[:num_keep]

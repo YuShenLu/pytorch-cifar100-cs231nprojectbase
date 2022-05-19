@@ -12,18 +12,15 @@ if __name__ == '__main__':
     parser.add_argument('-net', type=str, required=True, help='net type')
     parser.add_argument('-gpu', action='store_true', default=False, help='use gpu or not')
     parser.add_argument('-b', type=int, default=128, help='batch size for dataloader')
+    parser.add_argument('-path', type=str, required=True, help='path for model')
     args = parser.parse_args()
 
     #load model
-    # recent_folder = most_recent_folder(os.path.join(settings.CHECKPOINT_PATH, args.net), fmt=settings.DATE_FORMAT)
-    # if not recent_folder: raise Exception('no recent folder were found')
-    # checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, recent_folder)
-    checkpoint_path = "resnet18-20-regular.pth"
     net = get_network(args)
     map_loc = torch.device('cpu')
     if args.gpu:
         map_loc = torch.device('gpu')
-    net.load_state_dict(torch.load(checkpoint_path, map_location=map_loc))
+    net.load_state_dict(torch.load(args.path, map_location=map_loc))
     # net = models.resnet18(pretrained=True)
 
     # load training data
