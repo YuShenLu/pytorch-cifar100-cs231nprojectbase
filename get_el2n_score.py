@@ -29,15 +29,19 @@ if __name__ == '__main__':
         settings.CIFAR100_TRAIN_STD,
         num_workers=4,
         batch_size=args.b,
-        shuffle=True
+        shuffle=False
     )
-
 
     # compute el2n score
     scores = []
     num_batches = len(cifar100_training_loader.dataset) // args.b
     for batch_index, (images, labels) in enumerate(cifar100_training_loader):
         print(f'computing el2n score batch {batch_index} of {num_batches}')
+
+        if args.gpu:
+            images = images.cuda()
+            labels = labels.cuda()
+
         outputs = net(images)
         el2n_score = compute_el2n_score(outputs, labels)
         scores.append(el2n_score)

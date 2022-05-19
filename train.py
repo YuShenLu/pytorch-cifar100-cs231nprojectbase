@@ -147,7 +147,7 @@ if __name__ == '__main__':
     cifar100_training_loader = None
     if args.el2n and args.path is not None:    
         scores = np.load(args.path)
-        num_keep = int(args.el2npercent * len(scores))
+        num_keep = int(args.el2nkp * len(scores))
 
         lowest_scoring = np.sort(scores)[:num_keep]
         lowest_scoring_indices = np.argsort(scores)[:num_keep]
