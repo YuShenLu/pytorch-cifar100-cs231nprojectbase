@@ -19,7 +19,7 @@ if __name__ == '__main__':
     net = get_network(args)
     map_loc = torch.device('cpu')
     if args.gpu:
-        map_loc = torch.device('gpu')
+        map_loc = torch.device('cuda')
     net.load_state_dict(torch.load(args.path, map_location=map_loc))
     # net = models.resnet18(pretrained=True)
 
