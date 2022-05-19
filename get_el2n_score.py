@@ -7,7 +7,6 @@ import os
 from conf import settings
 from utils import get_network, get_training_dataloader, most_recent_folder
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-net', type=str, required=True, help='net type')
@@ -19,9 +18,13 @@ if __name__ == '__main__':
     # recent_folder = most_recent_folder(os.path.join(settings.CHECKPOINT_PATH, args.net), fmt=settings.DATE_FORMAT)
     # if not recent_folder: raise Exception('no recent folder were found')
     # checkpoint_path = os.path.join(settings.CHECKPOINT_PATH, args.net, recent_folder)
-    # net = get_network(args)
-    # net.load_state_dict(torch.load(checkpoint_path))
-    net = models.resnet18(pretrained=True)
+    checkpoint_path = "resnet18-20-regular.pth"
+    net = get_network(args)
+    map_loc = torch.device('cpu')
+    if args.gpu:
+        map_loc = torch.device('gpu')
+    net.load_state_dict(torch.load(checkpoint_path, map_location=map_loc))
+    # net = models.resnet18(pretrained=True)
 
     # load training data
     cifar100_training_loader = get_training_dataloader(
@@ -31,6 +34,7 @@ if __name__ == '__main__':
         batch_size=args.b,
         shuffle=True
     )
+
 
     # compute el2n score
     scores = []
