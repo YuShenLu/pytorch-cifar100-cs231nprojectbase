@@ -149,11 +149,10 @@ if __name__ == '__main__':
         scores = np.load(args.path)
         num_keep = int(args.el2nkp * len(scores))
 
-        lowest_scoring = np.sort(scores)[:num_keep]
-        lowest_scoring_indices = np.argsort(scores)[:num_keep]
+        highest_scoring_indices = np.argsort(scores)[::-1][:num_keep]
 
         mask = np.zeros(len(scores), dtype=bool)
-        mask[lowest_scoring_indices] = True
+        mask[highest_scoring_indices] = True
 
         cifar100_training_loader = get_training_dataloader_el2n(
             settings.CIFAR100_TRAIN_MEAN,
