@@ -56,7 +56,7 @@ def train(epoch, data_ledger=None):
         # Hard-coded keep=0.5
         sample_ind = sample_example_ind(net, images, labels, keep=0.5, sampling=args.sbp)
 
-        if not sample_ind:
+        if len(sample_ind)==0:
             continue
         curr_ind += len(sample_ind)
         total_ind += len(sample_ind)
@@ -64,9 +64,9 @@ def train(epoch, data_ledger=None):
             for ind in sample_ind:
                 data_ind = int(batch_index * args.b + ind)
                 if data_ind in data_ledger:
-                    data_ledger[batch_index * args.b + ind].append(epoch)
+                    data_ledger[int(batch_index * args.b + ind)].append(epoch)
                 else:
-                    data_ledger[batch_index * args.b + ind] = [epoch]
+                    data_ledger[int(batch_index * args.b + ind)] = [epoch]
 
         images_selected = images[sample_ind]
         labels_selected = labels[sample_ind]
@@ -143,20 +143,22 @@ def train(epoch, data_ledger=None):
 
 # Code Adapted From
 # https://github.com/mosaicml/composer/blob/dev/composer/algorithms/selective_backprop/selective_backprop.py
-def sample_example_ind(model, images, labels, keep, sampling=True):
+def sample_example_ind(net, images, labels, keep=0.5, sampling=True):
     if not sampling:
         return np.arange(0,images.shape[0]).tolist()
 
+    loss = nn.CrossEntropyLoss(reduction='none')
+    N = images.shape[0]
+
     with torch.no_grad():
-        N = input.shape[0]
-
-        # Get per-examples losses
-        out = model(images)
-        losses = loss_function(out, labels, reduction="none")
-
+        # net(images)
+        img, label = images, labels
+        output = net(img)
+        example_loss = loss(output, label)
         # Sort losses
-        sorted_idx = torch.argsort(losses)
-        n_select = int(keep * N)
+
+        sorted_idx = torch.argsort(example_loss)
+        n_select = int(0.5 * images.shape[0])
 
         # Sample by loss
         percs = np.arange(0.5, N, 1) / N
@@ -165,7 +167,33 @@ def sample_example_ind(model, images, labels, keep, sampling=True):
         select_percs_idx = np.random.choice(N, n_select, replace=False, p=probs)
         select_idx = sorted_idx[select_percs_idx]
 
-    return select_idx
+    return select_idx.cpu().numpy()
+
+# # Code Adapted From
+# # https://github.com/mosaicml/composer/blob/dev/composer/algorithms/selective_backprop/selective_backprop.py
+# def sample_example_ind(model, images, labels, keep, sampling=True):
+#     if not sampling:
+#         return np.arange(0,images.shape[0]).tolist()
+#
+#     with torch.no_grad():
+#         N = images.shape[0]
+#
+#         # Get per-examples losses
+#         out = model(images)
+#         losses = loss_function(out, labels, reduction="none")
+#
+#         # Sort losses
+#         sorted_idx = torch.argsort(losses)
+#         n_select = int(keep * N)
+#
+#         # Sample by loss
+#         percs = np.arange(0.5, N, 1) / N
+#         probs = percs ** ((1.0 / keep) - 1.0)
+#         probs = probs / np.sum(probs)
+#         select_percs_idx = np.random.choice(N, n_select, replace=False, p=probs)
+#         select_idx = sorted_idx[select_percs_idx]
+#
+#     return select_idx
 
 
 @torch.no_grad()
@@ -313,7 +341,7 @@ if __name__ == '__main__':
             if epoch <= resume_epoch:
                 continue
 
-        if epoch > ((settings.EPOCH)//2) and turn_on_sbp:
+        if turn_on_sbp and epoch > ((settings.EPOCH)//2) :
             print("Half way through training, turnning on SBP")
             args.sbp = True
 
