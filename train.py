@@ -39,7 +39,7 @@ calculator = None
 
 def train(epoch, data_ledger=None):
     global total_ind
-    global calculator
+    # global calculator
     start = time.time()
     net.train()
     curr_ind = 0
@@ -53,7 +53,9 @@ def train(epoch, data_ledger=None):
 
         optimizer.zero_grad()
 
-        sample_ind = sample_example_ind(calculator, net, images, labels, sampling=args.sbp)
+        # Hard-coded keep=0.5
+        sample_ind = sample_example_ind(net, images, labels, keep=0.5, sampling=args.sbp)
+
         if not sample_ind:
             continue
         curr_ind += len(sample_ind)
@@ -68,6 +70,7 @@ def train(epoch, data_ledger=None):
 
         images_selected = images[sample_ind]
         labels_selected = labels[sample_ind]
+
         outputs_selected = net(images_selected)
         loss = loss_function(outputs_selected, labels_selected)
         loss.backward()
@@ -111,33 +114,58 @@ def train(epoch, data_ledger=None):
     print('epoch {} training time consumed: {:.2f}s'.format(epoch, finish - start))
 
 
-def sample_example_ind(calculator, net, images, labels, sampling=True):
+# def sample_example_ind(calculator, net, images, labels, sampling=True):
+#     if not sampling:
+#         return np.arange(0,images.shape[0]).tolist()
+#     # loss_total_check = loss_function(net(images), labels)
+#     exp_selected = []
+#     # cum_loss = 0
+#     for exp_ind in range(images.shape[0]):
+#         with torch.no_grad():
+#             # net(images)
+#             img, label = images[exp_ind].unsqueeze(0), labels[exp_ind].unsqueeze(0)
+#             output = net(img)
+#             example_loss = loss_function(output, label)
+#             # this is a test, not actually doing sampling base on
+#             # if exp_ind%3==0:
+#             #     exp_selected.append(exp_ind)
+#
+#             loss_val = example_loss.cpu().data.item()
+#             calculator.append(loss_val)
+#             prob = calculator.calculate_probability(loss_val)
+#             if np.random.rand() < prob:
+#                 exp_selected.append(exp_ind)
+#         # cum_loss += example_loss.cpu().data
+#
+#     # assert (loss_total_check.cpu() - cum_loss <1e-5)
+#
+#     return exp_selected
+
+# Code Adapted From
+# https://github.com/mosaicml/composer/blob/dev/composer/algorithms/selective_backprop/selective_backprop.py
+def sample_example_ind(model, images, labels, keep, sampling=True):
     if not sampling:
         return np.arange(0,images.shape[0]).tolist()
-    # loss_total_check = loss_function(net(images), labels)
-    exp_selected = []
-    # cum_loss = 0
-    for exp_ind in range(images.shape[0]):
-        with torch.no_grad():
-            # net(images)
-            img, label = images[exp_ind].unsqueeze(0), labels[exp_ind].unsqueeze(0)
-            output = net(img)
-            example_loss = loss_function(output, label)
-            # this is a test, not actually doing sampling base on
-            # if exp_ind%3==0:
-            #     exp_selected.append(exp_ind)
 
-            loss_val = example_loss.cpu().data.item()
-            calculator.append(loss_val)
-            prob = calculator.calculate_probability(loss_val)
-            if np.random.rand() < prob:
-                exp_selected.append(exp_ind)
-        # cum_loss += example_loss.cpu().data
+    with torch.no_grad():
+        N = input.shape[0]
 
-    # assert (loss_total_check.cpu() - cum_loss <1e-5)
+        # Get per-examples losses
+        out = model(images)
+        losses = loss_function(out, labels, reduction="none")
 
-    return exp_selected
+        # Sort losses
+        sorted_idx = torch.argsort(losses)
+        n_select = int(keep * N)
 
+        # Sample by loss
+        percs = np.arange(0.5, N, 1) / N
+        probs = percs ** ((1.0 / keep) - 1.0)
+        probs = probs / np.sum(probs)
+        select_percs_idx = np.random.choice(N, n_select, replace=False, p=probs)
+        select_idx = sorted_idx[select_percs_idx]
+
+    return select_idx
 
 
 @torch.no_grad()
@@ -191,7 +219,7 @@ if __name__ == '__main__':
     parser.add_argument('-lr', type=float, default=0.1, help='initial learning rate')
     parser.add_argument('-resume', action='store_true', default=False, help='resume training')
     parser.add_argument('-sbp', action='store_true', default=False, help='run with selective backprop')
-    parser.add_argument('-beta', type=int, default=3, help='selective backprop param')
+    parser.add_argument('-beta', type=int, default=1, help='selective backprop param')
     args = parser.parse_args()
 
     net = get_network(args)
