@@ -158,7 +158,7 @@ def sample_example_ind(net, images, labels, keep=0.5, sampling=True):
         # Sort losses
 
         sorted_idx = torch.argsort(example_loss)
-        n_select = int(0.5 * images.shape[0])
+        n_select = int(keep * N)
 
         # Sample by loss
         percs = np.arange(0.5, N, 1) / N
@@ -342,7 +342,7 @@ if __name__ == '__main__':
                 continue
 
         if turn_on_sbp and epoch > ((settings.EPOCH)//2) :
-            print("Half way through training, turnning on SBP")
+            print("Half way through training, turning on SBP")
             args.sbp = True
 
         train(epoch, data_ledger)
