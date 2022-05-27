@@ -54,7 +54,7 @@ def train(epoch, data_ledger=None):
         optimizer.zero_grad()
 
         # Hard-coded keep=0.5
-        sample_ind = sample_example_ind(net, images, labels, keep=0.5, sampling=args.sbp)
+        sample_ind = sample_example_ind(net, images, labels, keep=args.keep, sampling=args.sbp)
 
         if len(sample_ind)==0:
             continue
@@ -146,6 +146,12 @@ def train(epoch, data_ledger=None):
 def sample_example_ind(net, images, labels, keep=0.5, sampling=True):
     if not sampling:
         return np.arange(0,images.shape[0]).tolist()
+
+    if args.sbpRandom:
+        selected_ind = np.arange(0,images.shape[0]).tolist()
+        np.random.shuffle(selected_ind)
+        n_select = int(images.shape[0]*keep)
+        return selected_ind[:n_select]
 
     loss = nn.CrossEntropyLoss(reduction='none')
     N = images.shape[0]
@@ -247,7 +253,10 @@ if __name__ == '__main__':
     parser.add_argument('-lr', type=float, default=0.1, help='initial learning rate')
     parser.add_argument('-resume', action='store_true', default=False, help='resume training')
     parser.add_argument('-sbp', action='store_true', default=False, help='run with selective backprop')
-    parser.add_argument('-beta', type=int, default=1, help='selective backprop param')
+    parser.add_argument('-beta', type=int, default=1, help='selective backprop param, deprecated')
+    parser.add_argument('-keep', type=float, default=0.5, help='keep ratio for selective bp')
+    parser.add_argument('-sbpstart', type=float, default=0.5, help='when to start sbp')
+    parser.add_argument('-sbpRandom', action='store_true', default=False, help='run with selective backprop but drop points randomly')
     args = parser.parse_args()
 
     net = get_network(args)
@@ -341,8 +350,8 @@ if __name__ == '__main__':
             if epoch <= resume_epoch:
                 continue
 
-        if turn_on_sbp and epoch > ((settings.EPOCH)//2) :
-            print("Half way through training, turning on SBP")
+        if turn_on_sbp and epoch > ((settings.EPOCH)*args.sbpstart):
+            print("Reach starting point, turning on SBP")
             args.sbp = True
 
         train(epoch, data_ledger)
