@@ -35,7 +35,7 @@ def get_training_dataloader_el2n(mean, std, batch_size=16, num_workers=2, mask=N
     #cifar100_training = CIFAR100Train(path, transform=transform_train)
     cifar100_training = torchvision.datasets.CIFAR100(root='./data', train=True, download=True, transform=transform_train)
     cifar100_training.data = cifar100_training.data[mask]
-    cifar100_training.targets = list(np.array(cifar100_training.targets)[mask])
+    cifar100_training.targets = np.array(cifar100_training.targets)[mask].tolist()
     cifar100_training_loader = DataLoader(
         cifar100_training, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
 

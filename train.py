@@ -301,13 +301,6 @@ if __name__ == '__main__':
             batch_size=args.b,
             shuffle=False
         )
-    cifar100_training_loader = get_training_dataloader(
-        settings.CIFAR100_TRAIN_MEAN,
-        settings.CIFAR100_TRAIN_STD,
-        num_workers=4,
-        batch_size=args.b,
-        shuffle=False
-    )
 
     cifar100_test_loader = get_test_dataloader(
         settings.CIFAR100_TRAIN_MEAN,
