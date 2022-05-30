@@ -140,7 +140,7 @@ if __name__ == '__main__':
     parser.add_argument('-keep', type=float, default=0.75, help='keep percentage')
     parser.add_argument('-path', type=str, required=False, help='path for el2n scores')
     parser.add_argument('-shuffle', action='store_true', default=False, help='shuffle order of points')
-    # parser.add_argument('-el2n_epoch', type=int, default=20, help='epoch for el2n score calculation')
+    parser.add_argument('-epoch', type=int, required=False, default=200, help='how many epochs to run')
     args = parser.parse_args()
 
     net = get_network(args)
@@ -245,7 +245,7 @@ if __name__ == '__main__':
         resume_epoch = last_epoch(os.path.join(settings.CHECKPOINT_PATH, args.net, recent_folder))
 
 
-    for epoch in range(1, settings.EPOCH + 1):
+    for epoch in range(1, args.epoch + 1):
         if epoch > args.warm:
             train_scheduler.step(epoch)
 
