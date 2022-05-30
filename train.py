@@ -139,6 +139,7 @@ if __name__ == '__main__':
     parser.add_argument('-el2n', action='store_true', default=False, help='compute el2n score')
     parser.add_argument('-keep', type=float, default=0.75, help='keep percentage')
     parser.add_argument('-path', type=str, required=False, help='path for el2n scores')
+    parser.add_argument('-shuffle', action='store_true', default=False, help='shuffle order of points')
     # parser.add_argument('-el2n_epoch', type=int, default=20, help='epoch for el2n score calculation')
     args = parser.parse_args()
 
@@ -161,7 +162,7 @@ if __name__ == '__main__':
             num_workers=4,
             batch_size=args.b,
             mask = mask,
-            shuffle=False
+            shuffle=args.shuffle
         )
     elif args.random:
         cifar100_training_loader = get_training_dataloader_random(
@@ -170,7 +171,7 @@ if __name__ == '__main__':
             num_workers=4,
             batch_size=args.b,
             percent=args.keep,
-            shuffle=False
+            shuffle=args.shuffle
         )
     else:
         cifar100_training_loader = get_training_dataloader(
@@ -178,7 +179,7 @@ if __name__ == '__main__':
             settings.CIFAR100_TRAIN_STD,
             num_workers=4,
             batch_size=args.b,
-            shuffle=False
+            shuffle=args.shuffle
         )
 
     cifar100_test_loader = get_test_dataloader(
