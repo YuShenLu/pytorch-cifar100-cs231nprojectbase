@@ -25,7 +25,7 @@ from torch.utils.tensorboard import SummaryWriter
 from conf import settings
 from utils import get_network, get_training_dataloader, get_test_dataloader, WarmUpLR, \
     most_recent_folder, most_recent_weights, last_epoch, best_acc_weights
-from el2n_data_loader import get_training_dataloader_el2n
+from el2n_data_loader import get_training_dataloader_el2n, get_training_dataloader_random
 
 # from el2n import compute_el2n_score
 
@@ -135,8 +135,9 @@ if __name__ == '__main__':
     parser.add_argument('-warm', type=int, default=1, help='warm up training phase')
     parser.add_argument('-lr', type=float, default=0.1, help='initial learning rate')
     parser.add_argument('-resume', action='store_true', default=False, help='resume training')
+    parser.add_argument('-random', action='store_true', default=False, help='compute el2n score')
     parser.add_argument('-el2n', action='store_true', default=False, help='compute el2n score')
-    parser.add_argument('-el2nkp', type=float, default=0.75, help='el2n keep percentage')
+    parser.add_argument('-keep', type=float, default=0.75, help='keep percentage')
     parser.add_argument('-path', type=str, required=False, help='path for el2n scores')
     # parser.add_argument('-el2n_epoch', type=int, default=20, help='epoch for el2n score calculation')
     args = parser.parse_args()
@@ -147,7 +148,7 @@ if __name__ == '__main__':
     cifar100_training_loader = None
     if args.el2n and args.path is not None:    
         scores = np.load(args.path)
-        num_keep = int(args.el2nkp * len(scores))
+        num_keep = int(args.keep * len(scores))
 
         highest_scoring_indices = np.argsort(scores)[::-1][:num_keep]
 
@@ -160,6 +161,15 @@ if __name__ == '__main__':
             num_workers=4,
             batch_size=args.b,
             mask = mask,
+            shuffle=False
+        )
+    elif args.random:
+        cifar100_training_loader = get_training_dataloader_random(
+            settings.CIFAR100_TRAIN_MEAN,
+            settings.CIFAR100_TRAIN_STD,
+            num_workers=4,
+            batch_size=args.b,
+            percent=args.keep,
             shuffle=False
         )
     else:
