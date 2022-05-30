@@ -403,7 +403,7 @@ if __name__ == '__main__':
             torch.save(net.state_dict(), weights_path)
 
     print("="*20+"Training Data stats:"+"="*20)
-    print(data_ledger)
+    # print(data_ledger)
     jsonfilename = "./data_ledger_"+args.net
     if args.sbp:
         jsonfilename += "_sbp"
